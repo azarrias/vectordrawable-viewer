@@ -1,0 +1,26 @@
+{
+  "name": "vectordrawable-viewer",
+  "version": "1.0.0",
+  "description": "VS Code extension that lets you visualize VectorDrawable XML files. Ideal for quickly iterating edits of simple VectorDrawable assets.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azarrias/vectordrawable-viewer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/azarrias/vectordrawable-viewer/issues"
+  },
+  "homepage": "https://github.com/azarrias/vectordrawable-viewer#readme",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/vscode": "^1.134.0",
+    "typescript": "^7.0.2"
+  }
+}
