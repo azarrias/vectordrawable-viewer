@@ -69,16 +69,20 @@ function parseVectorDrawable(xml) {
   const viewportWidth = vector.getAttribute("android:viewportWidth") || 24;
   const viewportHeight = vector.getAttribute("android:viewportHeight") || 24;
 
-  const path = doc.querySelector("path");
-  if (!path) return "<p>No <path> tag found.</p>";
+  const paths = Array.from(doc.querySelectorAll("path"));
+  if (paths.length === 0) return "<p>No <path> tags found.</p>";
 
-  const pathData = path.getAttribute("android:pathData");
   const fillColor = "#d8c3a5";
 
+  const svgPaths = paths.map(p => {
+  const d = p.getAttribute("android:pathData");
+  return \`<path d="\${d}" fill="\${fillColor}" />\`;
+  }).join("");
+
   return \`
-    <svg viewBox="0 0 \${viewportWidth} \${viewportHeight}">
-      <path d="\${pathData}" fill="\${fillColor}" />
-    </svg>
+  <svg viewBox="0 0 \${viewportWidth} \${viewportHeight}">
+      \${svgPaths}
+  </svg>
   \`;
 }
 
