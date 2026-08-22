@@ -32,6 +32,9 @@ export function activate(context: vscode.ExtensionContext) {
 function getWebviewContent(xml: string): string {
   const escaped = xml.replace(/`/g, "\\`");
 
+  const config = vscode.workspace.getConfiguration("vectordrawableViewer");
+  const defaultFill = config.get("defaultFillColor") || "#000000";
+
   return `
 <!DOCTYPE html>
 <html>
@@ -58,6 +61,7 @@ svg {
 
 <script>
 const vscode = acquireVsCodeApi();
+const DEFAULT_FILL = "${defaultFill}";
 
 function parseVectorDrawable(xml) {
   const parser = new DOMParser();
@@ -74,14 +78,14 @@ function parseVectorDrawable(xml) {
 
   const svgPaths = paths.map(p => {
     const d = p.getAttribute("android:pathData");
-    const fill = p.getAttribute("android:fillColor") || "#000000";
+    const fill = p.getAttribute("android:fillColor") || DEFAULT_FILL;
     return \`<path d="\${d}" fill="\${fill}" />\`;
   }).join("");
 
   return \`
-  <svg viewBox="0 0 \${viewportWidth} \${viewportHeight}">
+    <svg viewBox="0 0 \${viewportWidth} \${viewportHeight}">
       \${svgPaths}
-  </svg>
+    </svg>
   \`;
 }
 

@@ -10,6 +10,15 @@
   "categories": ["Other"],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "properties": {
+        "vectordrawableViewer.defaultFillColor": {
+          "type": "string",
+          "default": "#000000",
+          "description": "Default fill color when android:fillColor is missing."
+        }
+      }
+    },
     "commands": [
       {
         "command": "vectordrawable.viewer",
