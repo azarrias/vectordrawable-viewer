@@ -1,6 +1,7 @@
 {
   "name": "vectordrawable-viewer",
   "displayName": "VectorDrawable Viewer",
+  "icon": "icon.png",
   "publisher": "collectiveofone",
   "description": "VS Code extension that lets you visualize VectorDrawable XML files. Ideal for quickly iterating edits of simple VectorDrawable assets.",
   "version": "0.0.1",
