@@ -1,1 +1,98 @@
-export function activate() {}
+import * as vscode from "vscode";
+
+export function activate(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand("vectordrawable.viewer", () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showErrorMessage("No active editor.");
+      return;
+    }
+
+    const xml = editor.document.getText();
+
+    const panel = vscode.window.createWebviewPanel(
+      "vectordrawableViewer",
+      "VectorDrawable Viewer",
+      vscode.ViewColumn.Beside,
+      { enableScripts: true }
+    );
+
+    panel.webview.html = getWebviewContent(xml);
+
+    vscode.workspace.onDidChangeTextDocument(event => {
+      if (event.document === editor.document) {
+        panel.webview.postMessage({ xml: event.document.getText() });
+      }
+    });
+  });
+
+  context.subscriptions.push(disposable);
+}
+
+function getWebviewContent(xml: string): string {
+  const escaped = xml.replace(/`/g, "\\`");
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body {
+  background: #f5f5f5;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+svg {
+  width: 80%;
+  height: auto;
+}
+</style>
+</head>
+<body>
+<div id="container"></div>
+
+<script>
+const vscode = acquireVsCodeApi();
+
+function parseVectorDrawable(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, "application/xml");
+
+  const vector = doc.querySelector("vector");
+  if (!vector) return "<p>No <vector> tag found.</p>";
+
+  const viewportWidth = vector.getAttribute("android:viewportWidth") || 24;
+  const viewportHeight = vector.getAttribute("android:viewportHeight") || 24;
+
+  const path = doc.querySelector("path");
+  if (!path) return "<p>No <path> tag found.</p>";
+
+  const pathData = path.getAttribute("android:pathData");
+  const fillColor = "#d8c3a5";
+
+  return \`
+    <svg viewBox="0 0 \${viewportWidth} \${viewportHeight}">
+      <path d="\${pathData}" fill="\${fillColor}" />
+    </svg>
+  \`;
+}
+
+function render(xml) {
+  document.getElementById("container").innerHTML = parseVectorDrawable(xml);
+}
+
+window.addEventListener("message", event => {
+  render(event.data.xml);
+});
+
+render(\`${escaped}\`);
+</script>
+</body>
+</html>
+`;
+}
