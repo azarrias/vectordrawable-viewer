@@ -72,11 +72,10 @@ function parseVectorDrawable(xml) {
   const paths = Array.from(doc.querySelectorAll("path"));
   if (paths.length === 0) return "<p>No <path> tags found.</p>";
 
-  const fillColor = "#d8c3a5";
-
   const svgPaths = paths.map(p => {
-  const d = p.getAttribute("android:pathData");
-  return \`<path d="\${d}" fill="\${fillColor}" />\`;
+    const d = p.getAttribute("android:pathData");
+    const fill = p.getAttribute("android:fillColor") || "#000000";
+    return \`<path d="\${d}" fill="\${fill}" />\`;
   }).join("");
 
   return \`
