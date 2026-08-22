@@ -14,8 +14,48 @@
       "properties": {
         "vectordrawableViewer.defaultFillColor": {
           "type": "string",
-          "default": "#000000",
+          "default": "#00000000",
           "description": "Default fill color when android:fillColor is missing."
+        },
+        "vectordrawableViewer.defaultFillAlpha": {
+          "type": "string",
+          "default": "1",
+          "description": "Default fill alpha when android:fillAlpha is missing."
+        },
+        "vectordrawableViewer.defaultStrokeColor": {
+          "type": "string",
+          "default": "#00000000",
+          "description": "Default stroke color when android:strokeColor is missing."
+        },
+        "vectordrawableViewer.defaultStrokeWidth": {
+          "type": "string",
+          "default": "0",
+          "description": "Default stroke width when android:strokeWidth is missing."
+        },
+        "vectordrawableViewer.defaultStrokeAlpha": {
+          "type": "string",
+          "default": "1",
+          "description": "Default stroke alpha when android:strokeAlpha is missing."
+        },
+        "vectordrawableViewer.defaultTrimStart": {
+          "type": "string",
+          "default": "0",
+          "description": "Default trim start when android:trimStart is missing."
+        },
+        "vectordrawableViewer.defaultTrimEnd": {
+          "type": "string",
+          "default": "1",
+          "description": "Default trim end when android:trimEnd is missing."
+        },
+        "vectordrawableViewer.defaultTrimOffset": {
+          "type": "string",
+          "default": "0",
+          "description": "Default trim offset when android:trimOffset is missing."
+        },
+        "vectordrawableViewer.defaultFillType": {
+          "type": "string",
+          "default": "nonZero",
+          "description": "Default fill type when android:fillType is missing."
         }
       }
     },
