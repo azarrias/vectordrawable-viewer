@@ -12,6 +12,9 @@
     "Visualization"
   ],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:vectordrawable.viewer"
+  ],
   "contributes": {
     "configuration": {
       "properties": {
