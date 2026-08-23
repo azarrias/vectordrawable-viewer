@@ -33,6 +33,11 @@ function getWebviewContent(xml: string): string {
   const escaped = xml.replace(/`/g, "\\`");
 
   const config = vscode.workspace.getConfiguration("vectordrawableViewer");
+  const defaultWidth = config.get("defaultWidth") || "24";
+  const defaultHeight = config.get("defaultHeight") || "24";
+  const defaultAlpha = config.get("defaultAlpha") || "1";
+  const defaultTint = config.get("defaultTint") || "";
+  const defaultTintMode = config.get("defaultTintMode") || "src_in";
   const defaultFillColor = config.get("defaultFillColor") || "#00000000";
   const defaultFillAlpha = config.get("defaultFillAlpha") || "1";
   const defaultStrokeColor = config.get("defaultStrokeColor") || "#00000000";
@@ -72,6 +77,11 @@ svg {
 
 <script>
 const vscode = acquireVsCodeApi();
+const DEFAULT_WIDTH = "${defaultWidth}";
+const DEFAULT_HEIGHT = "${defaultHeight}";
+const DEFAULT_ALPHA = "${defaultAlpha}";
+const DEFAULT_TINT = "${defaultTint}";
+const DEFAULT_TINT_MODE = "${defaultTintMode}";
 const DEFAULT_FILL_COLOR = "${defaultFillColor}";
 const DEFAULT_FILL_ALPHA = "${defaultFillAlpha}";
 const DEFAULT_STROKE_COLOR = "${defaultStrokeColor}";
@@ -91,6 +101,13 @@ function parseVectorDrawable(xml) {
 
   const vector = doc.querySelector("vector");
   if (!vector) return "<p>No <vector> tag found.</p>";
+
+  const width = vector.getAttribute("android:width") || DEFAULT_WIDTH;
+  const height = vector.getAttribute("android:height") || DEFAULT_HEIGHT;
+  const alpha = vector.getAttribute("android:alpha") || DEFAULT_ALPHA;
+
+  const tint = vector.getAttribute("android:tint") || DEFAULT_TINT;
+  const tintMode = vector.getAttribute("android:tintMode") || DEFAULT_TINT_MODE;
 
   const viewportWidth = vector.getAttribute("android:viewportWidth") || 24;
   const viewportHeight = vector.getAttribute("android:viewportHeight") || 24;
@@ -152,11 +169,34 @@ function parseVectorDrawable(xml) {
 
   }).join("");
 
-  return \`
-    <svg viewBox="0 0 \${viewportWidth} \${viewportHeight}">
+  let blendMode = "normal";
+
+  if (tintMode === "multiply") {
+    blendMode = "multiply";
+  } else if (tintMode === "screen") {
+    blendMode = "screen";
+  }
+
+  let tintedGroupStart = "";
+  let tintedGroupEnd = "";
+
+  if (tint) {
+    tintedGroupStart = \`<g fill="\${tint}" style="mix-blend-mode: \${blendMode}">\`;
+    tintedGroupEnd = \`</g>\`;
+  }
+  
+return \`
+  <svg
+    viewBox="0 0 \${viewportWidth} \${viewportHeight}"
+    width="\${width}"
+    height="\${height}"
+    opacity="\${alpha}"
+  >
+    \${tint ? tintedGroupStart : ""}
       \${svgPaths}
-    </svg>
-  \`;
+    \${tint ? tintedGroupEnd : ""}
+  </svg>
+\`;
 }
 
 function render(xml) {

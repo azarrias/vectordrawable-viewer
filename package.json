@@ -18,6 +18,31 @@
   "contributes": {
     "configuration": {
       "properties": {
+        "vectordrawableViewer.defaultWidth": {
+          "type": "string",
+          "default": "24",
+          "description": "Default width when android:width is missing."
+        },
+        "vectordrawableViewer.defaultHeight": {
+          "type": "string",
+          "default": "24",
+          "description": "Default height when android:height is missing."
+        },
+        "vectordrawableViewer.defaultAlpha": {
+          "type": "string",
+          "default": "1",
+          "description": "Default alpha when android:alpha is missing."
+        },
+        "vectordrawableViewer.defaultTint": {
+          "type": "string",
+          "default": "",
+          "description": "Default tint color when android:tint is missing."
+        },
+        "vectordrawableViewer.defaultTintMode": {
+          "type": "string",
+          "default": "src_in",
+          "description": "Default tint mode when android:tintMode is missing."
+        },
         "vectordrawableViewer.defaultFillColor": {
           "type": "string",
           "default": "#00000000",
