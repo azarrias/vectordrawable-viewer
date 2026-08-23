@@ -122,6 +122,20 @@ function computeGroupTransform(g) {
   return transform.trim();
 }
 
+function renderClipPath(node, inheritedTransform) {
+  const pathData = node.getAttribute("android:pathData");
+  const clipId = "clip_" + performance.now().toString(36);
+
+  return {
+    id: clipId,
+    svg: \`
+      <clipPath id="\${clipId}">
+        <path d="\${pathData}" \${inheritedTransform ? \`transform="\${inheritedTransform}"\` : ""}/>
+      </clipPath>
+    \`
+  };
+}
+
 function renderPath(p, inheritedTransform) {
   const pathData = p.getAttribute("android:pathData");
 
@@ -160,7 +174,7 @@ function renderPath(p, inheritedTransform) {
   return \`
     <path
       d="\${pathData}"
-      transform="\${inheritedTransform}"
+      \${inheritedTransform ? \`transform="\${inheritedTransform}"\` : ""}
       fill="\${fillColor}"
       fill-opacity="\${fillAlpha}"
       stroke="\${strokeColor}"
@@ -176,18 +190,43 @@ function renderPath(p, inheritedTransform) {
 }
 
 function processNode(node, parentTransform = "") {
-  if (node.tagName === "group") {
+  const tag = node.tagName.toLowerCase();
+
+  if (tag === "group") {
     const transform = computeGroupTransform(node);
     const combinedTransform = (parentTransform + " " + transform).trim();
 
-    const children = Array.from(node.children)
-      .map(child => processNode(child, combinedTransform))
+    let clip = null;
+
+    const children = Array.from(node.childNodes)
+      .filter(n => n.nodeType === 1)
+      .map(child => {
+        const childTag = child.tagName.toLowerCase();
+
+        if (childTag === "clip-path") {
+          clip = renderClipPath(child, combinedTransform);
+          return "";
+        }
+
+        return processNode(child, combinedTransform);
+      })
       .join("");
 
-    return \`<g transform="\${combinedTransform}">\${children}</g>\`;
+    const clipAttr = clip ? \`clip-path="url(#\${clip.id})"\` : "";
+
+    return \`
+      \${clip ? clip.svg : ""}
+      <g \${combinedTransform ? \`transform="\${combinedTransform}"\` : ""} \${clipAttr}>
+        \${children}
+      </g>
+    \`;
   }
 
-  if (node.tagName === "path") {
+  if (tag === "clip-path") {
+    return "";
+  }
+
+  if (tag === "path") {
     return renderPath(node, parentTransform);
   }
 
