@@ -77,6 +77,7 @@ svg {
 
 <script>
 const vscode = acquireVsCodeApi();
+
 const DEFAULT_WIDTH = "${defaultWidth}";
 const DEFAULT_HEIGHT = "${defaultHeight}";
 const DEFAULT_ALPHA = "${defaultAlpha}";
@@ -95,6 +96,104 @@ const DEFAULT_STROKE_LINE_CAP = "${defaultStrokeLineCap}";
 const DEFAULT_STROKE_LINE_JOIN = "${defaultStrokeLineJoin}";
 const DEFAULT_STROKE_MITER_LIMIT = "${defaultStrokeMiterLimit}";
 
+function computeGroupTransform(g) {
+  const rotation = parseFloat(g.getAttribute("android:rotation") || 0);
+  const pivotX = parseFloat(g.getAttribute("android:pivotX") || 0);
+  const pivotY = parseFloat(g.getAttribute("android:pivotY") || 0);
+  const scaleX = parseFloat(g.getAttribute("android:scaleX") || 1);
+  const scaleY = parseFloat(g.getAttribute("android:scaleY") || 1);
+  const translateX = parseFloat(g.getAttribute("android:translateX") || 0);
+  const translateY = parseFloat(g.getAttribute("android:translateY") || 0);
+
+  let transform = "";
+
+  if (translateX !== 0 || translateY !== 0) {
+    transform += \` translate(\${translateX}, \${translateY})\`;
+  }
+
+  if (rotation !== 0) {
+    transform += \` rotate(\${rotation}, \${pivotX}, \${pivotY})\`;
+  }
+
+  if (scaleX !== 1 || scaleY !== 1) {
+    transform += \` scale(\${scaleX}, \${scaleY})\`;
+  }
+
+  return transform.trim();
+}
+
+function renderPath(p, inheritedTransform) {
+  const pathData = p.getAttribute("android:pathData");
+
+  const fillColor = p.getAttribute("android:fillColor") || DEFAULT_FILL_COLOR;
+  const fillAlpha = p.getAttribute("android:fillAlpha") || DEFAULT_FILL_ALPHA;
+
+  const strokeColor = p.getAttribute("android:strokeColor") || DEFAULT_STROKE_COLOR;
+  const strokeWidth = p.getAttribute("android:strokeWidth") || DEFAULT_STROKE_WIDTH;
+  const strokeAlpha = p.getAttribute("android:strokeAlpha") || DEFAULT_STROKE_ALPHA;
+
+  const strokeLineCap = p.getAttribute("android:strokeLineCap") || DEFAULT_STROKE_LINE_CAP;
+  const strokeLineJoin = p.getAttribute("android:strokeLineJoin") || DEFAULT_STROKE_LINE_JOIN;
+  const strokeMiterLimit = p.getAttribute("android:strokeMiterLimit") || DEFAULT_STROKE_MITER_LIMIT;
+
+  const trimStart = parseFloat(p.getAttribute("android:trimPathStart") || DEFAULT_TRIM_START);
+  const trimEnd = parseFloat(p.getAttribute("android:trimPathEnd") || DEFAULT_TRIM_END);
+  const trimOffset = parseFloat(p.getAttribute("android:trimPathOffset") || DEFAULT_TRIM_OFFSET);
+
+  const fillType = p.getAttribute("android:fillType") || DEFAULT_FILL_TYPE;
+  const svgFillRule = fillType === "evenOdd" ? "evenodd" : "nonzero";
+
+  let trimAttrs = "";
+  if (trimStart !== 0 || trimEnd !== 1 || trimOffset !== 0) {
+    const length = 1;
+    const start = (trimStart + trimOffset) % 1;
+    const end = (trimEnd + trimOffset) % 1;
+
+    const dashStart = start * length;
+    const dashEnd = end * length;
+    const dashArray = \`\${dashEnd - dashStart} \${length - (dashEnd - dashStart)}\`;
+    const dashOffset = dashStart;
+
+    trimAttrs = \`stroke-dasharray="\${dashArray}" stroke-dashoffset="\${dashOffset}"\`;
+  }
+
+  return \`
+    <path
+      d="\${pathData}"
+      transform="\${inheritedTransform}"
+      fill="\${fillColor}"
+      fill-opacity="\${fillAlpha}"
+      stroke="\${strokeColor}"
+      stroke-width="\${strokeWidth}"
+      stroke-opacity="\${strokeAlpha}"
+      stroke-linecap="\${strokeLineCap}"
+      stroke-linejoin="\${strokeLineJoin}"
+      stroke-miterlimit="\${strokeMiterLimit}"
+      fill-rule="\${svgFillRule}"
+      \${trimAttrs}
+    />
+  \`;
+}
+
+function processNode(node, parentTransform = "") {
+  if (node.tagName === "group") {
+    const transform = computeGroupTransform(node);
+    const combinedTransform = (parentTransform + " " + transform).trim();
+
+    const children = Array.from(node.children)
+      .map(child => processNode(child, combinedTransform))
+      .join("");
+
+    return \`<g transform="\${combinedTransform}">\${children}</g>\`;
+  }
+
+  if (node.tagName === "path") {
+    return renderPath(node, parentTransform);
+  }
+
+  return "";
+}
+
 function parseVectorDrawable(xml) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xml, "application/xml");
@@ -112,70 +211,9 @@ function parseVectorDrawable(xml) {
   const viewportWidth = vector.getAttribute("android:viewportWidth") || 24;
   const viewportHeight = vector.getAttribute("android:viewportHeight") || 24;
 
-  const paths = Array.from(doc.querySelectorAll("path"));
-  if (paths.length === 0) return "<p>No <path> tags found.</p>";
-
-  const svgPaths = paths.map(p => {
-    const pathData = p.getAttribute("android:pathData");
-
-    const fillColor = p.getAttribute("android:fillColor") || DEFAULT_FILL_COLOR;
-    const fillAlpha = p.getAttribute("android:fillAlpha") || DEFAULT_FILL_ALPHA;
-
-    const strokeColor = p.getAttribute("android:strokeColor") || DEFAULT_STROKE_COLOR;
-    const strokeWidth = p.getAttribute("android:strokeWidth") || DEFAULT_STROKE_WIDTH;
-    const strokeAlpha = p.getAttribute("android:strokeAlpha") || DEFAULT_STROKE_ALPHA;
-
-    const strokeLineCap = p.getAttribute("android:strokeLineCap") || DEFAULT_STROKE_LINE_CAP;
-    const strokeLineJoin = p.getAttribute("android:strokeLineJoin") || DEFAULT_STROKE_LINE_JOIN;
-    const strokeMiterLimit = p.getAttribute("android:strokeMiterLimit") || DEFAULT_STROKE_MITER_LIMIT;
-
-    const trimStart = parseFloat(p.getAttribute("android:trimPathStart") || DEFAULT_TRIM_START);
-    const trimEnd = parseFloat(p.getAttribute("android:trimPathEnd") || DEFAULT_TRIM_END);
-    const trimOffset = parseFloat(p.getAttribute("android:trimPathOffset") || DEFAULT_TRIM_OFFSET);
-
-    const fillType = p.getAttribute("android:fillType") || DEFAULT_FILL_TYPE;
-
-    const svgFillRule = fillType === "evenOdd" ? "evenodd" : "nonzero";
-
-    let trimAttrs = "";
-    if (trimStart !== 0 || trimEnd !== 1 || trimOffset !== 0) {
-      const length = 1;
-      const start = (trimStart + trimOffset) % 1;
-      const end = (trimEnd + trimOffset) % 1;
-
-      const dashStart = start * length;
-      const dashEnd = end * length;
-      const dashArray = \`\${dashEnd - dashStart} \${length - (dashEnd - dashStart)}\`;
-      const dashOffset = dashStart;
-
-      trimAttrs = \`stroke-dasharray="\${dashArray}" stroke-dashoffset="\${dashOffset}"\`;
-    }
-
-  return \`
-    <path
-      d="\${pathData}"
-      fill="\${fillColor}"
-      fill-opacity="\${fillAlpha}"
-      stroke="\${strokeColor}"
-      stroke-width="\${strokeWidth}"
-      stroke-opacity="\${strokeAlpha}"
-      stroke-linecap="\${strokeLineCap}"
-      stroke-linejoin="\${strokeLineJoin}"
-      stroke-miterlimit="\${strokeMiterLimit}"
-      fill-rule="\${svgFillRule}"
-      \${trimAttrs}
-    />
-  \`;
-
-  }).join("");
-
   let blendMode = "normal";
-
-  if (tintMode === "multiply") {
-    blendMode = "multiply";
-  } else if (tintMode === "screen") {
-    blendMode = "screen";
-  }
+  if (tintMode === "multiply") blendMode = "multiply";
+  else if (tintMode === "screen") blendMode = "screen";
 
   let tintedGroupStart = "";
   let tintedGroupEnd = "";
@@ -184,19 +222,21 @@ function parseVectorDrawable(xml) {
     tintedGroupStart = \`<g fill="\${tint}" style="mix-blend-mode: \${blendMode}">\`;
     tintedGroupEnd = \`</g>\`;
   }
-  
-return \`
-  <svg
-    viewBox="0 0 \${viewportWidth} \${viewportHeight}"
-    width="\${width}"
-    height="\${height}"
-    opacity="\${alpha}"
-  >
-    \${tint ? tintedGroupStart : ""}
-      \${svgPaths}
-    \${tint ? tintedGroupEnd : ""}
-  </svg>
-\`;
+
+  const svgContent = processNode(vector);
+
+  return \`
+    <svg
+      viewBox="0 0 \${viewportWidth} \${viewportHeight}"
+      width="\${width}"
+      height="\${height}"
+      opacity="\${alpha}"
+    >
+      \${tint ? tintedGroupStart : ""}
+        \${svgContent}
+      \${tint ? tintedGroupEnd : ""}
+    </svg>
+  \`;
 }
 
 function render(xml) {
