@@ -102,6 +102,11 @@
           "type": "string",
           "default": "nonZero",
           "description": "Default fill type when android:fillType is missing."
+        },
+        "vectordrawableViewer.defaultAutoMirrored": {
+          "type": "boolean",
+          "default": false,
+          "description": "Default autoMirrored when android:autoMirrored is missing."
         }
       }
     },

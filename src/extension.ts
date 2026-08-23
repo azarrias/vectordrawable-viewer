@@ -33,6 +33,7 @@ function getWebviewContent(xml: string): string {
   const escaped = xml.replace(/`/g, "\\`");
 
   const config = vscode.workspace.getConfiguration("vectordrawableViewer");
+
   const defaultWidth = config.get("defaultWidth") || "24";
   const defaultHeight = config.get("defaultHeight") || "24";
   const defaultAlpha = config.get("defaultAlpha") || "1";
@@ -50,6 +51,7 @@ function getWebviewContent(xml: string): string {
   const defaultTrimEnd = config.get("defaultTrimEnd") || "1";
   const defaultTrimOffset = config.get("defaultTrimOffset") || "0";
   const defaultFillType = config.get("defaultFillType") || "nonZero";
+  const defaultAutoMirrored = config.get("defaultAutoMirrored") || false;
 
   return `
 <!DOCTYPE html>
@@ -95,6 +97,7 @@ const DEFAULT_FILL_TYPE = "${defaultFillType}";
 const DEFAULT_STROKE_LINE_CAP = "${defaultStrokeLineCap}";
 const DEFAULT_STROKE_LINE_JOIN = "${defaultStrokeLineJoin}";
 const DEFAULT_STROKE_MITER_LIMIT = "${defaultStrokeMiterLimit}";
+const DEFAULT_AUTO_MIRRORED = ${defaultAutoMirrored};
 
 function computeGroupTransform(g) {
   const rotation = parseFloat(g.getAttribute("android:rotation") || 0);
@@ -247,6 +250,9 @@ function parseVectorDrawable(xml) {
   const tint = vector.getAttribute("android:tint") || DEFAULT_TINT;
   const tintMode = vector.getAttribute("android:tintMode") || DEFAULT_TINT_MODE;
 
+  const autoMirroredAttr = vector.getAttribute("android:autoMirrored");
+  const autoMirrored = autoMirroredAttr === "true" || (autoMirroredAttr === null && DEFAULT_AUTO_MIRRORED);
+
   const viewportWidth = vector.getAttribute("android:viewportWidth") || 24;
   const viewportHeight = vector.getAttribute("android:viewportHeight") || 24;
 
@@ -264,12 +270,18 @@ function parseVectorDrawable(xml) {
 
   const svgContent = processNode(vector);
 
+  let autoMirrorTransform = "";
+  if (autoMirrored) {
+    autoMirrorTransform = \`transform="scale(-1, 1) translate(-\${viewportWidth}, 0)"\`;
+  }
+
   return \`
     <svg
       viewBox="0 0 \${viewportWidth} \${viewportHeight}"
       width="\${width}"
       height="\${height}"
       opacity="\${alpha}"
+      \${autoMirrorTransform}
     >
       \${tint ? tintedGroupStart : ""}
         \${svgContent}
