@@ -43,6 +43,21 @@
           "default": "1",
           "description": "Default stroke alpha when android:strokeAlpha is missing."
         },
+        "vectordrawableViewer.defaultStrokeLineCap": {
+          "type": "string",
+          "default": "butt",
+          "description": "Default stroke line cap when android:strokeLineCap is missing."
+        },
+        "vectordrawableViewer.defaultStrokeLineJoin": {
+          "type": "string",
+          "default": "miter",
+          "description": "Default stroke line join when android:strokeLineJoin is missing."
+        },
+        "vectordrawableViewer.defaultStrokeMiterLimit": {
+          "type": "string",
+          "default": "4",
+          "description": "Default stroke miter limit when android:strokeMiterLimit is missing."
+        },
         "vectordrawableViewer.defaultTrimStart": {
           "type": "string",
           "default": "0",

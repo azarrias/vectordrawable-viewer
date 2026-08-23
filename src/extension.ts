@@ -38,6 +38,9 @@ function getWebviewContent(xml: string): string {
   const defaultStrokeColor = config.get("defaultStrokeColor") || "#00000000";
   const defaultStrokeWidth = config.get("defaultStrokeWidth") || "0";
   const defaultStrokeAlpha = config.get("defaultStrokeAlpha") || "1";
+  const defaultStrokeLineCap = config.get("defaultStrokeLineCap") || "butt";
+  const defaultStrokeLineJoin = config.get("defaultStrokeLineJoin") || "miter";
+  const defaultStrokeMiterLimit = config.get("defaultStrokeMiterLimit") || "4";
   const defaultTrimStart = config.get("defaultTrimStart") || "0";
   const defaultTrimEnd = config.get("defaultTrimEnd") || "1";
   const defaultTrimOffset = config.get("defaultTrimOffset") || "0";
@@ -78,6 +81,9 @@ const DEFAULT_TRIM_START = "${defaultTrimStart}";
 const DEFAULT_TRIM_END = "${defaultTrimEnd}";
 const DEFAULT_TRIM_OFFSET = "${defaultTrimOffset}";
 const DEFAULT_FILL_TYPE = "${defaultFillType}";
+const DEFAULT_STROKE_LINE_CAP = "${defaultStrokeLineCap}";
+const DEFAULT_STROKE_LINE_JOIN = "${defaultStrokeLineJoin}";
+const DEFAULT_STROKE_MITER_LIMIT = "${defaultStrokeMiterLimit}";
 
 function parseVectorDrawable(xml) {
   const parser = new DOMParser();
@@ -102,11 +108,16 @@ function parseVectorDrawable(xml) {
     const strokeWidth = p.getAttribute("android:strokeWidth") || DEFAULT_STROKE_WIDTH;
     const strokeAlpha = p.getAttribute("android:strokeAlpha") || DEFAULT_STROKE_ALPHA;
 
+    const strokeLineCap = p.getAttribute("android:strokeLineCap") || DEFAULT_STROKE_LINE_CAP;
+    const strokeLineJoin = p.getAttribute("android:strokeLineJoin") || DEFAULT_STROKE_LINE_JOIN;
+    const strokeMiterLimit = p.getAttribute("android:strokeMiterLimit") || DEFAULT_STROKE_MITER_LIMIT;
+
     const trimStart = parseFloat(p.getAttribute("android:trimPathStart") || DEFAULT_TRIM_START);
     const trimEnd = parseFloat(p.getAttribute("android:trimPathEnd") || DEFAULT_TRIM_END);
     const trimOffset = parseFloat(p.getAttribute("android:trimPathOffset") || DEFAULT_TRIM_OFFSET);
 
     const fillType = p.getAttribute("android:fillType") || DEFAULT_FILL_TYPE;
+
     const svgFillRule = fillType === "evenOdd" ? "evenodd" : "nonzero";
 
     let trimAttrs = "";
@@ -131,6 +142,9 @@ function parseVectorDrawable(xml) {
       stroke="\${strokeColor}"
       stroke-width="\${strokeWidth}"
       stroke-opacity="\${strokeAlpha}"
+      stroke-linecap="\${strokeLineCap}"
+      stroke-linejoin="\${strokeLineJoin}"
+      stroke-miterlimit="\${strokeMiterLimit}"
       fill-rule="\${svgFillRule}"
       \${trimAttrs}
     />
