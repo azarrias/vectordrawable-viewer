@@ -9,9 +9,6 @@ on:
       bump:
         description: "Semantic version bump: major, minor, or patch"
         required: false
-      notes:
-        description: "Release notes"
-        required: false
 
 jobs:
   build-and-release:
@@ -29,14 +26,12 @@ jobs:
       - name: Determine version
         id: versioning
         run: |
-          # Read current version from package.json
           CURRENT_VERSION=$(jq -r '.version' package.json)
 
           # If explicit version is provided, use it
           if [ -n "${{ github.event.inputs.version }}" ]; then
             NEW_VERSION="${{ github.event.inputs.version }}"
           else
-            # Otherwise perform semantic bump
             PART="${{ github.event.inputs.bump }}"
             if [ "$PART" = "major" ]; then
               NEW_VERSION="v$(npm version major --no-git-tag-version | sed 's/^v//')"
@@ -51,6 +46,14 @@ jobs:
           fi
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Validate changelog entry exists
+        run: |
+          RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
+          if ! grep -q "## $RAW_VERSION" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md does not contain section: ## $RAW_VERSION"
+            exit 1
+          fi
 
       - name: Update package.json version
         run: |
@@ -86,7 +89,6 @@ jobs:
         with:
           tag_name: ${{ steps.versioning.outputs.new_version }}
           name: Release ${{ steps.versioning.outputs.new_version }}
-          body: ${{ github.event.inputs.notes }}
           files: "*.vsix"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
