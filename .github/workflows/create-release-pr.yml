@@ -83,7 +83,7 @@ jobs:
           BRANCH="release/$RAW_VERSION"
           git push origin "$BRANCH"
 
-      - name: Create PR via GitHub API
+      - name: Create PR via GitHub API (using GH_PAT)
         run: |
           RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
           BRANCH="release/$RAW_VERSION"
@@ -94,4 +94,4 @@ jobs:
             -f base="main" \
             -f body="Automated release PR for version v$RAW_VERSION."
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
