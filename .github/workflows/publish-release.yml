@@ -12,6 +12,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    # Only run when the commit message contains "Prepare release vX.Y.Z"
     if: contains(github.event.head_commit.message, 'Prepare release')
 
     steps:
