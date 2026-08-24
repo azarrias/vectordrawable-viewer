@@ -46,6 +46,14 @@ jobs:
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Validate changelog entry exists
+        run: |
+          RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
+          if ! grep -q "## $RAW_VERSION" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md does not contain section: ## $RAW_VERSION"
+            exit 1
+          fi
+
       - name: Update package.json version
         run: |
           RAW=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
