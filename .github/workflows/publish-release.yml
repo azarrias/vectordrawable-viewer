@@ -1,37 +1,76 @@
 name: Publish Release
 
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Explicit version (e.g., v0.1.0). Leave empty if using bump."
+        required: false
+      bump:
+        description: "Semantic version bump: major, minor, or patch"
+        required: false
+
 permissions:
   contents: write
-
-on:
-  push:
-    branches:
-      - main
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
-    if: startsWith(github.event.head_commit.message, 'Merge pull request') &&
-        contains(github.event.head_commit.message, 'release/')
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.after }}
           fetch-depth: 0
 
-      - name: Extract version from commit message
-        id: extract
+      - name: Determine version
+        id: versioning
         run: |
-          VERSION=$(echo "${{ github.event.head_commit.message }}" | sed -n 's/.*Prepare release v\([0-9.]*\).*/v\1/p')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          CURRENT=$(jq -r '.version' package.json)
 
-      - name: Create tag
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            NEW_VERSION="${{ github.event.inputs.version }}"
+          else
+            BUMP="${{ github.event.inputs.bump }}"
+            if [ "$BUMP" = "major" ]; then
+              NEW_VERSION="v$(npm version major --no-git-tag-version | sed 's/^v//')"
+            elif [ "$BUMP" = "minor" ]; then
+              NEW_VERSION="v$(npm version minor --no-git-tag-version | sed 's/^v//')"
+            elif [ "$BUMP" = "patch" ]; then
+              NEW_VERSION="v$(npm version patch --no-git-tag-version | sed 's/^v//')"
+            else
+              echo "ERROR: You must specify either version or bump."
+              exit 1
+            fi
+          fi
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
         run: |
-          git tag ${{ steps.extract.outputs.version }}
-          git push origin ${{ steps.extract.outputs.version }}
+          RAW=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
+          jq ".version = \"$RAW\"" package.json > package.tmp.json
+          mv package.tmp.json package.json
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add package.json
+          git commit -m "Release ${{ steps.versioning.outputs.new_version }}"
+
+      - name: Push commit
+        run: |
+          git push origin HEAD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Create tag using GH_PAT
+        run: |
+          git tag ${{ steps.versioning.outputs.new_version }}
+          git push origin ${{ steps.versioning.outputs.new_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,19 +92,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.extract.outputs.version }}
-          name: Release ${{ steps.extract.outputs.version }}
+          tag_name: ${{ steps.versioning.outputs.new_version }}
+          name: Release ${{ steps.versioning.outputs.new_version }}
           files: "*.vsix"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Delete release branch
-        run: |
-          RAW_VERSION=$(echo "${{ steps.extract.outputs.version }}" | sed 's/^v//')
-          BRANCH="release/$RAW_VERSION"
-
-          gh api \
-            -X DELETE \
-            repos/${{ github.repository }}/git/refs/heads/$BRANCH
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
