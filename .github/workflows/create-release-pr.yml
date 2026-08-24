@@ -1,7 +1,8 @@
-name: Build and Release VS Code Extension
+name: Create Release PR
 
 permissions:
   contents: write
+  pull-requests: write
 
 on:
   workflow_dispatch:
@@ -14,7 +15,7 @@ on:
         required: false
 
 jobs:
-  build-and-release:
+  create-release-pr:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +32,6 @@ jobs:
         run: |
           CURRENT_VERSION=$(jq -r '.version' package.json)
 
-          # If explicit version is provided, use it
           if [ -n "${{ github.event.inputs.version }}" ]; then
             NEW_VERSION="${{ github.event.inputs.version }}"
           else
@@ -58,40 +58,35 @@ jobs:
             exit 1
           fi
 
+      - name: Create release branch
+        run: |
+          RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
+          BRANCH="release/$RAW_VERSION"
+          git checkout -b "$BRANCH"
+
       - name: Update package.json version
         run: |
           RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
           jq ".version = \"$RAW_VERSION\"" package.json > package.tmp.json
           mv package.tmp.json package.json
 
-      - name: Commit version bump
+      - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add package.json
-          git commit -m "Release ${{ steps.versioning.outputs.new_version }}"
-          git tag ${{ steps.versioning.outputs.new_version }}
+          git commit -m "Prepare release ${{ steps.versioning.outputs.new_version }}"
 
-      - name: Push tag
-        run: git push origin ${{ steps.versioning.outputs.new_version }}
+      - name: Push branch
+        run: |
+          RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
+          BRANCH="release/$RAW_VERSION"
+          git push origin "$BRANCH"
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Compile extension
-        run: npm run compile
-
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
-
-      - name: Package extension
-        run: vsce package
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
         with:
-          tag_name: ${{ steps.versioning.outputs.new_version }}
-          name: Release ${{ steps.versioning.outputs.new_version }}
-          files: "*.vsix"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          title: "Release ${{ steps.versioning.outputs.new_version }}"
+          body: "Automated release PR for version ${{ steps.versioning.outputs.new_version }}."
+          base: main
+          head: release/${{ steps.versioning.outputs.new_version }}
