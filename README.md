@@ -76,7 +76,7 @@ You can customize defaults in your VS Code settings:
 ```
 
 ## Usage
-Open any .xml file containing a <vector> drawable.
+Open any .xml file containing a `<vector>` drawable.
 
 Run the command:
 ```
@@ -93,11 +93,11 @@ Edit your XML - the preview updates instantly.
 
 ## Known limitations
 The following VectorDrawable features are not yet supported:
-- AnimatedVectorDrawable (<animated-vector>)
+- AnimatedVectorDrawable (`<animated-vector>`)
 - Path morphing animations
-- Gradient fills (<aapt:attr> with <gradient>)
+- Gradient fills (`<aapt:attr>` with `<gradient>`)
 - Resource resolution (@color/..., @drawable/...)
-- <group> name-based animation targets
+- `<group>` name-based animation targets
 
 ## License
 This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0).
