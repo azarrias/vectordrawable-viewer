@@ -1,0 +1,92 @@
+name: Build and Release VS Code Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Explicit version tag (e.g., v0.1.0). Leave empty if using bump."
+        required: false
+      bump:
+        description: "Semantic version bump: major, minor, or patch"
+        required: false
+      notes:
+        description: "Release notes"
+        required: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Determine version
+        id: versioning
+        run: |
+          # Read current version from package.json
+          CURRENT_VERSION=$(jq -r '.version' package.json)
+
+          # If explicit version is provided, use it
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            NEW_VERSION="${{ github.event.inputs.version }}"
+          else
+            # Otherwise perform semantic bump
+            PART="${{ github.event.inputs.bump }}"
+            if [ "$PART" = "major" ]; then
+              NEW_VERSION="v$(npm version major --no-git-tag-version | sed 's/^v//')"
+            elif [ "$PART" = "minor" ]; then
+              NEW_VERSION="v$(npm version minor --no-git-tag-version | sed 's/^v//')"
+            elif [ "$PART" = "patch" ]; then
+              NEW_VERSION="v$(npm version patch --no-git-tag-version | sed 's/^v//')"
+            else
+              echo "ERROR: You must specify either version or bump."
+              exit 1
+            fi
+          fi
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        run: |
+          RAW_VERSION=$(echo "${{ steps.versioning.outputs.new_version }}" | sed 's/^v//')
+          jq ".version = \"$RAW_VERSION\"" package.json > package.tmp.json
+          mv package.tmp.json package.json
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add package.json
+          git commit -m "Release ${{ steps.versioning.outputs.new_version }}"
+          git tag ${{ steps.versioning.outputs.new_version }}
+
+      - name: Push tag
+        run: git push origin ${{ steps.versioning.outputs.new_version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Compile extension
+        run: npm run compile
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Package extension
+        run: vsce package
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.versioning.outputs.new_version }}
+          name: Release ${{ steps.versioning.outputs.new_version }}
+          body: ${{ github.event.inputs.notes }}
+          files: "*.vsix"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
