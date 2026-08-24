@@ -4,7 +4,7 @@
   "icon": "icon.png",
   "publisher": "collectiveofone",
   "description": "VS Code extension that lets you visualize VectorDrawable XML files. Ideal for quickly iterating edits of simple VectorDrawable assets.",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.60.0"
   },
