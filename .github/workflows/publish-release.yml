@@ -55,3 +55,14 @@ jobs:
           files: "*.vsix"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete release branch
+        run: |
+          RAW_VERSION=$(echo "${{ steps.extract.outputs.version }}" | sed 's/^v//')
+          BRANCH="release/$RAW_VERSION"
+
+          gh api \
+            -X DELETE \
+            repos/${{ github.repository }}/git/refs/heads/$BRANCH
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
